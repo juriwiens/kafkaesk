@@ -1,0 +1,66 @@
+{
+  "name": "kafkaesk",
+  "version": "0.1.0",
+  "description": "High-level TypeScript Kafka consumer and producer based on node-rdkafka.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:debug": "node --inspect-brk -r ts-node/register node_modules/.bin/jest --runInBand",
+    "prepublishOnly": "npm test && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/juriwiens/kafkaesk.git"
+  },
+  "keywords": [
+    "kafka",
+    "consumer",
+    "producer",
+    "rdkafka"
+  ],
+  "author": "Juri Wiens <juriwiens@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/juriwiens/kafkaesk/issues"
+  },
+  "homepage": "https://github.com/juriwiens/kafkaesk#readme",
+  "dependencies": {
+    "lodash.merge": "^4.6.2",
+    "node-rdkafka": "^2.7.4",
+    "uuid": "^3.4.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^25.1.2",
+    "@types/lodash.merge": "^4.6.6",
+    "@types/node": "12",
+    "@types/uuid": "^3.4.6",
+    "jest": "^25.1.0",
+    "prettier": "^1.19.1",
+    "strict-event-emitter-types": "^2.0.0",
+    "ts-jest": "^25.0.0",
+    "ts-node": "^8.6.2",
+    "typescript": "^3.7.5"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "testRegex": ".spec.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
+    "coverageDirectory": "../coverage",
+    "testEnvironment": "node"
+  }
+}
