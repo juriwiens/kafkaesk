@@ -36,7 +36,7 @@ export interface OffsetCommit extends rdkafkaT.OffsetCommit {
 
 export interface KafkaBatchConsumerConfig {
   kafkaConfig: rdkafkaT.ConsumerKafkaConfig
-  topicConfigDefaults: rdkafkaT.ConsumerTopicConfig
+  topicConfig: rdkafkaT.ConsumerTopicConfig
   batchSize?: number
   maxEmptyBatchDelayMs?: number
 }
@@ -77,7 +77,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   ]
 
   readonly kafkaConfig: rdkafkaT.ConsumerKafkaConfig
-  readonly topicConfigDefaults: rdkafkaT.ConsumerTopicConfig
+  readonly topicConfig: rdkafkaT.ConsumerTopicConfig
   readonly topics: string[]
   readonly processorMap: { [topic: string]: KafkaTopicProcessor<any, any> }
   readonly consumer: rdkafka.KafkaConsumer
@@ -92,14 +92,14 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     super()
     const finalConfig = this.finalizeConfig(config)
     this.kafkaConfig = finalConfig.kafkaConfig
-    this.topicConfigDefaults = finalConfig.topicConfigDefaults
+    this.topicConfig = finalConfig.topicConfig
     this.batchSize = finalConfig.batchSize
     this.maxEmptyBatchDelayMs = finalConfig.maxEmptyBatchDelayMs
     this.topics = []
     this.processorMap = {}
     this.consumer = new rdkafka.KafkaConsumer(
       this.kafkaConfig,
-      this.topicConfigDefaults,
+      this.topicConfig,
     )
     this.consumer.on('ready', (info, metadata) =>
       this.emit('ready', info, metadata),
