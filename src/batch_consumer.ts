@@ -1,12 +1,12 @@
-import { EventEmitter } from 'events'
-import * as rdkafka from 'node-rdkafka'
-import merge from 'lodash.merge'
-import maxExponential from './utils/maxExponential'
+import { EventEmitter } from "events"
+import * as rdkafka from "node-rdkafka"
+import merge from "lodash.merge"
+import maxExponential from "./utils/maxExponential"
 
-import StrictEventEmitter from 'strict-event-emitter-types'
-import * as rdkafkaT from './node-rdkafka'
-import { KafkaMessage } from './message'
-import { ProcessDoneCallback, KafkaTopicProcessor } from './topic_processor'
+import StrictEventEmitter from "strict-event-emitter-types"
+import * as rdkafkaT from "./node-rdkafka"
+import { KafkaMessage } from "./message"
+import { ProcessDoneCallback, KafkaTopicProcessor } from "./topic_processor"
 
 export interface Batch<Body, Key> {
   messages: Array<KafkaMessage<Body, Key>>
@@ -63,17 +63,17 @@ type TypedEmitter = StrictEventEmitter<EventEmitter, KafkaBatchConsumerEvents>
 
 export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter) {
   static eventNames: Array<keyof KafkaBatchConsumerEvents> = [
-    'ready',
-    'disconnected',
-    'error',
-    'consuming',
-    'polling',
-    'offsetCommit',
-    'rawBatch',
-    'batch',
-    'batchesProcessed',
-    'emptyBatchDelay',
-    'invalidMessage',
+    "ready",
+    "disconnected",
+    "error",
+    "consuming",
+    "polling",
+    "offsetCommit",
+    "rawBatch",
+    "batch",
+    "batchesProcessed",
+    "emptyBatchDelay",
+    "invalidMessage",
   ]
 
   readonly kafkaConfig: rdkafkaT.ConsumerKafkaConfig
@@ -101,12 +101,12 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
       this.kafkaConfig,
       this.topicConfig,
     )
-    this.consumer.on('ready', (info, metadata) =>
-      this.emit('ready', info, metadata),
+    this.consumer.on("ready", (info, metadata) =>
+      this.emit("ready", info, metadata),
     )
-    this.consumer.on('disconnected', () => this.emit('disconnected'))
-    this.consumer.on('error', err =>
-      this.emit('error', err, 'consumer_error_event'),
+    this.consumer.on("disconnected", () => this.emit("disconnected"))
+    this.consumer.on("error", err =>
+      this.emit("error", err, "consumer_error_event"),
     )
     this.consuming = false
     // polling state
@@ -118,22 +118,22 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   private finalizeConfig(config: KafkaBatchConsumerConfig): FinalConfig {
     const defaults: Pick<
       KafkaBatchConsumer,
-      'batchSize' | 'maxEmptyBatchDelayMs'
+      "batchSize" | "maxEmptyBatchDelayMs"
     > = {
       batchSize: 1000,
       maxEmptyBatchDelayMs: 256,
     }
     const overrideKafkaConfig: Pick<
-      KafkaBatchConsumerConfig['kafkaConfig'],
-      | 'enable.auto.offset.store'
-      | 'enable.auto.commit'
-      | 'api.version.request'
-      | 'event_cb'
-      | 'offset_commit_cb'
+      KafkaBatchConsumerConfig["kafkaConfig"],
+      | "enable.auto.offset.store"
+      | "enable.auto.commit"
+      | "api.version.request"
+      | "event_cb"
+      | "offset_commit_cb"
     > = {
-      'enable.auto.offset.store': true, // enable offset store
-      'enable.auto.commit': false, // but do not commit automatically
-      'api.version.request': true,
+      "enable.auto.offset.store": true, // enable offset store
+      "enable.auto.commit": false, // but do not commit automatically
+      "api.version.request": true,
       event_cb: true,
       offset_commit_cb: this.offsetCommitCallback,
     }
@@ -194,13 +194,13 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
 
   startConsuming(): boolean {
     if (!this.isConnected()) {
-      throw new Error('Consumer is not connected')
+      throw new Error("Consumer is not connected")
     }
     if (this.consuming) {
       return false
     }
     this.consuming = true
-    this.emit('consuming', true)
+    this.emit("consuming", true)
     return this.startPolling()
   }
 
@@ -210,7 +210,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     }
     this.stopPolling()
     this.consuming = false
-    this.emit('consuming', false)
+    this.emit("consuming", false)
     return true
   }
 
@@ -222,10 +222,10 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     topic: string,
   ): Promise<Batch<Body, Key>> {
     if (!this.isConnected()) {
-      throw new Error('Consumer is not connected')
+      throw new Error("Consumer is not connected")
     }
     if (!this.consuming) {
-      throw new Error('Consumer is not consuming')
+      throw new Error("Consumer is not consuming")
     }
     if (!this.topics.includes(topic)) {
       throw new Error(
@@ -239,9 +239,9 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
           resolve(batch)
         }
       }
-      this.on('batch', listener)
+      this.on("batch", listener)
     })
-    this.removeListener('batch', listener!)
+    this.removeListener("batch", listener!)
     return batch
   }
 
@@ -252,7 +252,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     }
     // init polling state
     this.polling = true
-    this.emit('polling', true)
+    this.emit("polling", true)
     this.precedingEmptyBatches = 0
     this.pollRawBatch()
     return true
@@ -264,7 +264,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     }
     // reset polling state
     this.polling = false
-    this.emit('polling', false)
+    this.emit("polling", false)
     if (this.pollTimeout) {
       clearTimeout(this.pollTimeout)
       this.pollTimeout = null
@@ -278,7 +278,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
 
   private rawBatchDoneCallback: ProcessDoneCallback = err => {
     if (err) {
-      this.emit('error', err, 'processor')
+      this.emit("error", err, "processor")
       throw err
     }
     if (!this.isConnected()) {
@@ -295,7 +295,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   ): void => {
     if (err) {
       // TODO: maybe retry?
-      this.emit('error', err, 'consume')
+      this.emit("error", err, "consume")
       throw err
     }
     if (!this.consuming) {
@@ -304,13 +304,13 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     }
     if (!Array.isArray(rawBatch)) {
       this.emit(
-        'error',
-        new Error('Consumed batch is not an array'),
-        'non_array_batch',
+        "error",
+        new Error("Consumed batch is not an array"),
+        "non_array_batch",
       )
       return
     }
-    this.emit('rawBatch', rawBatch)
+    this.emit("rawBatch", rawBatch)
     // init next poll and return if the batch is empty
     if (rawBatch.length < 1) {
       const delay = maxExponential(
@@ -318,7 +318,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
         this.precedingEmptyBatches++,
         2,
       )
-      this.emit('emptyBatchDelay', delay)
+      this.emit("emptyBatchDelay", delay)
       this.pollTimeout = setTimeout(this.pollRawBatch, delay)
       return
     }
@@ -332,7 +332,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     } = {}
     // init objects for batch splitting
     for (const topic of this.topics) {
-      if (this.processorMap[topic].level === 'topic') {
+      if (this.processorMap[topic].level === "topic") {
         topicBatchMap[topic] = {
           topic,
           messages: [],
@@ -374,7 +374,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
         batch.messages.push(msg)
         partitionStats.messageCount += 1
       } else {
-        this.emit('invalidMessage', msg)
+        this.emit("invalidMessage", msg)
       }
     }
     // process topic-level batches
@@ -392,7 +392,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     }
     Promise.all(processPromises)
       .then(() => this.rawBatchDoneCallback(), this.rawBatchDoneCallback)
-      .then(() => this.emit('batchesProcessed', processedBatches))
+      .then(() => this.emit("batchesProcessed", processedBatches))
   }
 
   private offsetCommitCallback: rdkafkaT.OffsetCommitCallback = (
@@ -400,10 +400,10 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     offsetCommits,
   ) => {
     if (err) {
-      this.emit('error', err, 'offset_commit')
+      this.emit("error", err, "offset_commit")
     } else {
       this.emit(
-        'offsetCommit',
+        "offsetCommit",
         offsetCommits.filter(KafkaBatchConsumer.isOffsetCommitWithOffset),
       )
     }
@@ -417,7 +417,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     topic: string,
     partition: number,
   ): Batch<any, any> {
-    if (this.processorMap[topic].level === 'topic') {
+    if (this.processorMap[topic].level === "topic") {
       const topicBatch = topicBatchMap[topic]
       this.createOrUpdatePartitionReport(topicBatch, topic, partition)
       return topicBatch
@@ -477,7 +477,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
           ),
         ),
       )
-      this.emit('batch', batch)
+      this.emit("batch", batch)
     }
     return { processedBatches, processPromises }
   }
@@ -485,6 +485,6 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   private static isOffsetCommitWithOffset(
     offsetCommit: rdkafkaT.OffsetCommit,
   ): offsetCommit is OffsetCommit {
-    return typeof offsetCommit.offset === 'number'
+    return typeof offsetCommit.offset === "number"
   }
 }

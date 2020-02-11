@@ -1,14 +1,14 @@
-import { EventEmitter } from 'events'
-import * as rdkafka from 'node-rdkafka'
-import merge from 'lodash.merge'
-import { identity } from './utils/identity'
+import { EventEmitter } from "events"
+import * as rdkafka from "node-rdkafka"
+import merge from "lodash.merge"
+import { identity } from "./utils/identity"
 
-import StrictEventEmitter from 'strict-event-emitter-types'
-import * as rdkafkaT from './node-rdkafka'
-import { BodySerializer, KeySerializer } from './serializer'
-import { KeyGenerator } from './key_generator'
-import { Partitioner } from './partitioner'
-import { DeepPartial } from './utils/generic_types'
+import StrictEventEmitter from "strict-event-emitter-types"
+import * as rdkafkaT from "./node-rdkafka"
+import { BodySerializer, KeySerializer } from "./serializer"
+import { KeyGenerator } from "./key_generator"
+import { Partitioner } from "./partitioner"
+import { DeepPartial } from "./utils/generic_types"
 
 export interface KafkaProducerConfig<Body = any, Key = any> {
   kafkaConfig: rdkafkaT.ProducerKafkaConfig
@@ -58,12 +58,12 @@ export class KafkaProducer<
       this.kafkaConfig,
       this.topicConfig,
     )
-    this.producer.on('ready', (info, metadata) =>
-      this.emit('ready', info, metadata),
+    this.producer.on("ready", (info, metadata) =>
+      this.emit("ready", info, metadata),
     )
-    this.producer.on('error', err => this.emit('error', err, 'producer_err'))
-    this.producer.on('delivery-report', (err, report) =>
-      this.emit('deliveryReport', err, report),
+    this.producer.on("error", err => this.emit("error", err, "producer_err"))
+    this.producer.on("delivery-report", (err, report) =>
+      this.emit("deliveryReport", err, report),
     )
     this.producer.setValueSerializer(identity as any)
     this.producer.setKeySerializer(identity as any)
@@ -123,10 +123,10 @@ export class KafkaProducer<
   ): FinalConfig<Body, Key> {
     const defaults: DeepPartial<KafkaProducerConfig<Body, Key>> = {}
     const overrideKafkaConfig: Pick<
-      KafkaProducerConfig<Body, Key>['kafkaConfig'],
-      'api.version.request' | 'dr_cb'
+      KafkaProducerConfig<Body, Key>["kafkaConfig"],
+      "api.version.request" | "dr_cb"
     > = {
-      'api.version.request': true,
+      "api.version.request": true,
       dr_cb: true,
     }
     return merge({}, defaults, config, { kafkaConfig: overrideKafkaConfig })

@@ -1,4 +1,4 @@
-import * as uuid from 'uuid'
+import * as uuid from "uuid"
 
 type KeyGeneratorWithTopic<Body, Key> = (body: Body, topic: string) => Key
 type KeyGeneratorWoutTopic<Body, Key> = (body: Body) => Key

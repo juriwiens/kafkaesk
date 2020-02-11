@@ -1,5 +1,5 @@
-import { BodyDeserializer, KeyDeserializer } from './deserializer'
-import { Batch } from './batch_consumer'
+import { BodyDeserializer, KeyDeserializer } from "./deserializer"
+import { Batch } from "./batch_consumer"
 
 export type ProcessDoneCallback = (err?: Error | null) => void
 
@@ -12,7 +12,7 @@ export type BodyValidatorFunc = (body: unknown) => boolean
 
 export interface KafkaTopicProcessor<Body, Key> {
   topic: string
-  level: 'topic' | 'partition'
+  level: "topic" | "partition"
   bodyDeserializer: BodyDeserializer<Body>
   bodyValidator: BodyValidatorFunc
   keyDeserializer: KeyDeserializer<Key>

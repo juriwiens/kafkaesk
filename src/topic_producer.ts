@@ -1,6 +1,6 @@
-import { BodySerializer, KeySerializer } from './serializer'
-import { KeyGenerator } from './key_generator'
-import { Partitioner } from './partitioner'
+import { BodySerializer, KeySerializer } from "./serializer"
+import { KeyGenerator } from "./key_generator"
+import { Partitioner } from "./partitioner"
 
 export interface KafkaTopicProducerConfig<Body, Key> {
   topic: string
