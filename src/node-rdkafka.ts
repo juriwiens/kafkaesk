@@ -75,6 +75,7 @@ export interface ConsumerKafkaConfig extends CommonKafkaConfig {
   'offset.store.method'?: 'none' | 'file' | 'broker'
   'enable.partition.eof'?: boolean
   'check.crcs'?: boolean
+  offset_commit_cb?: OffsetCommitCallback | boolean
 }
 
 export interface ProducerKafkaConfig extends CommonKafkaConfig {
@@ -85,6 +86,7 @@ export interface ProducerKafkaConfig extends CommonKafkaConfig {
   'retry.backoff.ms'?: number
   'compression.codec'?: 'none' | 'gzip' | 'snappy' | 'lz4'
   'batch.num.messages'?: number
+  dr_cb?: boolean
   'delivery.report.only.error'?: boolean
 }
 
@@ -142,6 +144,10 @@ export interface OffsetCommit {
   partition: number
   offset?: number
 }
+export type OffsetCommitCallback = (
+  err: Error | undefined,
+  offsetCommits: OffsetCommit[],
+) => void
 
 export interface DeliveryReport {
   topic: string
@@ -150,3 +156,7 @@ export interface DeliveryReport {
   key: Buffer
   size: number
 }
+export type DeliveryReportCallback = (
+  err: Error | undefined,
+  report: DeliveryReport,
+) => void
