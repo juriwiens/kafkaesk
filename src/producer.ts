@@ -8,6 +8,7 @@ import * as rdkafkaT from './node-rdkafka'
 import { BodySerializer, KeySerializer } from './serializer'
 import { KeyGenerator } from './key_generator'
 import { Partitioner } from './partitioner'
+import { DeepPartial } from './utils/generic_types'
 
 export interface KafkaProducerConfig<Body = any, Key = any> {
   kafkaConfig: rdkafkaT.ProducerKafkaConfig
@@ -17,7 +18,6 @@ export interface KafkaProducerConfig<Body = any, Key = any> {
   keySerializer: KeySerializer<Key>
   partitioner: Partitioner<Body, Key>
 }
-export const KafkaProducerConfig = Symbol.for('KafkaProducerConfig')
 
 export type ProduceCallback = (err: any, offset: number) => void
 
@@ -27,7 +27,7 @@ interface EmitterEvents {
   ready: (info: any, metadata: any) => void
   disconnected: void
   error: (err: unknown, context: string) => void
-  deliveryReport: (err: any, report: rdkafkaT.DeliveryReport) => void
+  deliveryReport: rdkafkaT.DeliveryReportCallback
 }
 type TypedEmitter = StrictEventEmitter<EventEmitter, EmitterEvents>
 
@@ -121,18 +121,14 @@ export class KafkaProducer<
   private static finalizeConfig<Body, Key>(
     config: KafkaProducerConfig<Body, Key>,
   ): FinalConfig<Body, Key> {
-    const defaults = {
-      batchSize: 1000,
-      maxEmptyBatchDelayMs: 256,
+    const defaults: DeepPartial<KafkaProducerConfig<Body, Key>> = {}
+    const overrideKafkaConfig: Pick<
+      KafkaProducerConfig<Body, Key>['kafkaConfig'],
+      'api.version.request' | 'dr_cb'
+    > = {
+      'api.version.request': true,
+      dr_cb: true,
     }
-    const override = {
-      kafka: {
-        'enable.auto.offset.store': true, // enable offset store
-        'enable.auto.commit': false, // but do not only commit automatically
-        'api.version.request': true,
-        dr_cb: true,
-      },
-    }
-    return merge({}, defaults, config, override)
+    return merge({}, defaults, config, { kafkaConfig: overrideKafkaConfig })
   }
 }

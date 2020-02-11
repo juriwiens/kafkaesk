@@ -116,20 +116,28 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   }
 
   private finalizeConfig(config: KafkaBatchConsumerConfig): FinalConfig {
-    const defaults = {
+    const defaults: Pick<
+      KafkaBatchConsumer,
+      'batchSize' | 'maxEmptyBatchDelayMs'
+    > = {
       batchSize: 1000,
       maxEmptyBatchDelayMs: 256,
     }
-    const override = {
-      kafkaConfig: {
-        'enable.auto.offset.store': true, // enable offset store
-        'enable.auto.commit': false, // but do not commit automatically
-        'api.version.request': true,
-        event_cb: true,
-        offset_commit_cb: this.offsetCommitCallback,
-      },
+    const overrideKafkaConfig: Pick<
+      KafkaBatchConsumerConfig['kafkaConfig'],
+      | 'enable.auto.offset.store'
+      | 'enable.auto.commit'
+      | 'api.version.request'
+      | 'event_cb'
+      | 'offset_commit_cb'
+    > = {
+      'enable.auto.offset.store': true, // enable offset store
+      'enable.auto.commit': false, // but do not commit automatically
+      'api.version.request': true,
+      event_cb: true,
+      offset_commit_cb: this.offsetCommitCallback,
     }
-    return merge({}, defaults, config, override)
+    return merge({}, defaults, config, { kafkaConfig: overrideKafkaConfig })
   }
 
   async connect(): Promise<any> {
@@ -387,16 +395,19 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
       .then(() => this.emit('batchesProcessed', processedBatches))
   }
 
-  private offsetCommitCallback = (
-    err: Error | undefined,
-    offsetCommits: rdkafkaT.OffsetCommit[],
-  ) =>
-    err
-      ? this.emit('error', err, 'offset_commit')
-      : this.emit(
-          'offsetCommit',
-          offsetCommits.filter(KafkaBatchConsumer.isOffsetCommitWithOffset),
-        )
+  private offsetCommitCallback: rdkafkaT.OffsetCommitCallback = (
+    err,
+    offsetCommits,
+  ) => {
+    if (err) {
+      this.emit('error', err, 'offset_commit')
+    } else {
+      this.emit(
+        'offsetCommit',
+        offsetCommits.filter(KafkaBatchConsumer.isOffsetCommitWithOffset),
+      )
+    }
+  }
 
   private createOrUpdateBatch(
     topicBatchMap: { [topic: string]: TopicBatch<any, any> },
