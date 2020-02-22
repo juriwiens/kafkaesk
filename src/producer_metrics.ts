@@ -32,7 +32,7 @@ export class KafkaProducerMetrics {
     }),
   ) {}
 
-  observe(producer: KafkaProducer<any, any>) {
+  observe(producer: KafkaProducer<any, any>): this {
     const { name } = producer
     const nameLabel = { name }
     this.connectedGauge.set(nameLabel, 0)
@@ -56,5 +56,6 @@ export class KafkaProducerMetrics {
       this.producedMessagesCounter.inc({ name, topic, partition })
       this.offsetGauge.set({ name, topic, partition }, offset)
     })
+    return this
   }
 }

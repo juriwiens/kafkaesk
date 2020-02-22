@@ -95,7 +95,7 @@ export class KafkaBatchConsumerMetrics {
     }),
   ) {}
 
-  observe(consumer: KafkaBatchConsumer) {
+  observe(consumer: KafkaBatchConsumer): this {
     this.observeErrorCount(consumer)
     this.observeIsConnected(consumer)
     this.observeIsConsuming(consumer)
@@ -108,6 +108,7 @@ export class KafkaBatchConsumerMetrics {
     this.observeBatchSize(consumer)
     this.observeConsumedOffset(consumer)
     this.observeCommittedOffset(consumer)
+    return this
   }
 
   private observeErrorCount(consumer: KafkaBatchConsumer): void {
