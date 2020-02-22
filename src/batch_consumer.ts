@@ -1,3 +1,4 @@
+import { promisify } from "util"
 import { EventEmitter } from "events"
 import * as rdkafka from "node-rdkafka"
 import merge from "lodash.merge"
@@ -140,24 +141,13 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     return merge({}, defaults, config, { kafkaConfig: overrideKafkaConfig })
   }
 
-  async connect(): Promise<any> {
-    return new Promise((resolve, reject) => {
-      this.consumer.connect(null, (err, metadata) => {
-        if (err) {
-          return reject(err)
-        }
-        resolve(metadata)
-      })
-    })
+  connect(metadataOptions?: any): Promise<any> {
+    return promisify(this.consumer.connect).call(this.consumer, metadataOptions)
   }
 
   disconnect(): Promise<any> {
     this.stopConsuming()
-    return new Promise((resolve, reject) => {
-      this.consumer.disconnect((err, metrics) =>
-        err ? reject(err) : resolve(metrics),
-      )
-    })
+    return promisify(this.consumer.disconnect).call(this.consumer)
   }
 
   isConnected(): boolean {
@@ -470,13 +460,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
         continue
       }
       processedBatches.push(batch)
-      processPromises.push(
-        new Promise((resolve, reject) =>
-          this.processorMap[batch.topic].processor(batch, err =>
-            err ? reject(err) : resolve(),
-          ),
-        ),
-      )
+      processPromises.push(this.processorMap[batch.topic].processor(batch))
       this.emit("batch", batch)
     }
     return { processedBatches, processPromises }

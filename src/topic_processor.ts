@@ -3,10 +3,7 @@ import { Batch } from "./batch_consumer"
 
 export type ProcessDoneCallback = (err?: Error | null) => void
 
-export type ProcessFunc<Body, Key> = (
-  batch: Batch<Body, Key>,
-  done: ProcessDoneCallback,
-) => void
+export type ProcessFunc<Body, Key> = (batch: Batch<Body, Key>) => Promise<void>
 
 export type BodyValidatorFunc = (body: unknown) => boolean
 
