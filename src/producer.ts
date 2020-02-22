@@ -82,11 +82,11 @@ export class KafkaProducer<
   private static finalizeConfig<Body, Key>(
     config: KafkaProducerConfig<Body, Key>,
   ): FinalConfig<Body, Key> {
-    const defaults: Required<Pick<KafkaProducerConfig<Body, Key>, "name">> = {
+    const defaults: Pick<FinalConfig<Body, Key>, "name"> = {
       name: "default",
     }
     const overrideKafkaConfig: Pick<
-      KafkaProducerConfig<Body, Key>["kafkaConfig"],
+      FinalConfig<Body, Key>["kafkaConfig"],
       "api.version.request" | "dr_cb"
     > = {
       "api.version.request": true,
