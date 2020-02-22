@@ -9,59 +9,6 @@ import * as rdkafkaT from "./node-rdkafka"
 import { KafkaMessage } from "./message"
 import { ProcessDoneCallback, KafkaTopicProcessor } from "./topic_processor"
 
-export interface Batch<Body, Key> {
-  messages: Array<KafkaMessage<Body, Key>>
-  topic: string
-  partition: number | null
-  partitionStats: { [partition: number]: PartitionStats }
-}
-
-export interface TopicBatch<Body, Key> extends Batch<Body, Key> {
-  partition: null
-}
-
-export interface PartitionBatch<Body, Key> extends Batch<Body, Key> {
-  partition: number
-}
-
-export interface PartitionStats {
-  topic: string
-  partition: number
-  offset: number
-  messageCount: number
-}
-
-export interface OffsetCommit extends rdkafkaT.OffsetCommit {
-  offset: number
-}
-
-export interface KafkaBatchConsumerConfig {
-  kafkaConfig: rdkafkaT.ConsumerKafkaConfig
-  topicConfig: rdkafkaT.ConsumerTopicConfig
-  batchSize?: number
-  maxEmptyBatchDelayMs?: number
-}
-
-interface FinalConfig extends KafkaBatchConsumerConfig {
-  batchSize: number
-  maxEmptyBatchDelayMs: number
-}
-
-export interface KafkaBatchConsumerEvents {
-  ready: (info: any, metadata: any) => void
-  disconnected: void
-  error: (err: unknown, context: string) => void
-  consuming: boolean
-  polling: boolean
-  offsetCommit: OffsetCommit[]
-  rawBatch: rdkafkaT.RawMessage[]
-  batch: Batch<any, any>
-  batchesProcessed: Array<Batch<any, any>>
-  emptyBatchDelay: number
-  invalidMessage: KafkaMessage<any, any>
-}
-type TypedEmitter = StrictEventEmitter<EventEmitter, KafkaBatchConsumerEvents>
-
 export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter) {
   static eventNames: Array<keyof KafkaBatchConsumerEvents> = [
     "ready",
@@ -77,6 +24,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     "invalidMessage",
   ]
 
+  readonly name: string
   readonly kafkaConfig: rdkafkaT.ConsumerKafkaConfig
   readonly topicConfig: rdkafkaT.ConsumerTopicConfig
   readonly topics: string[]
@@ -92,6 +40,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   constructor(config: KafkaBatchConsumerConfig) {
     super()
     const finalConfig = this.finalizeConfig(config)
+    this.name = finalConfig.name
     this.kafkaConfig = finalConfig.kafkaConfig
     this.topicConfig = finalConfig.topicConfig
     this.batchSize = finalConfig.batchSize
@@ -118,14 +67,15 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
 
   private finalizeConfig(config: KafkaBatchConsumerConfig): FinalConfig {
     const defaults: Pick<
-      KafkaBatchConsumer,
-      "batchSize" | "maxEmptyBatchDelayMs"
+      FinalConfig,
+      "name" | "batchSize" | "maxEmptyBatchDelayMs"
     > = {
+      name: "default",
       batchSize: 1000,
       maxEmptyBatchDelayMs: 256,
     }
     const overrideKafkaConfig: Pick<
-      KafkaBatchConsumerConfig["kafkaConfig"],
+      FinalConfig["kafkaConfig"],
       | "enable.auto.offset.store"
       | "enable.auto.commit"
       | "api.version.request"
@@ -472,3 +422,58 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     return typeof offsetCommit.offset === "number"
   }
 }
+
+export interface Batch<Body, Key> {
+  messages: Array<KafkaMessage<Body, Key>>
+  topic: string
+  partition: number | null
+  partitionStats: { [partition: number]: PartitionStats }
+}
+
+export interface TopicBatch<Body, Key> extends Batch<Body, Key> {
+  partition: null
+}
+
+export interface PartitionBatch<Body, Key> extends Batch<Body, Key> {
+  partition: number
+}
+
+export interface PartitionStats {
+  topic: string
+  partition: number
+  offset: number
+  messageCount: number
+}
+
+export interface OffsetCommit extends rdkafkaT.OffsetCommit {
+  offset: number
+}
+
+export interface KafkaBatchConsumerConfig {
+  name?: string
+  kafkaConfig: rdkafkaT.ConsumerKafkaConfig
+  topicConfig: rdkafkaT.ConsumerTopicConfig
+  batchSize?: number
+  maxEmptyBatchDelayMs?: number
+}
+
+interface FinalConfig extends KafkaBatchConsumerConfig {
+  name: string
+  batchSize: number
+  maxEmptyBatchDelayMs: number
+}
+
+export interface KafkaBatchConsumerEvents {
+  ready: (info: any, metadata: any) => void
+  disconnected: void
+  error: (err: unknown, context: string) => void
+  consuming: boolean
+  polling: boolean
+  offsetCommit: OffsetCommit[]
+  rawBatch: rdkafkaT.RawMessage[]
+  batch: Batch<any, any>
+  batchesProcessed: Array<Batch<any, any>>
+  emptyBatchDelay: number
+  invalidMessage: KafkaMessage<any, any>
+}
+type TypedEmitter = StrictEventEmitter<EventEmitter, KafkaBatchConsumerEvents>
