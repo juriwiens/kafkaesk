@@ -6,7 +6,7 @@ import { KafkaProducerMetrics } from "./producer.metrics"
 import { KafkaBatchConsumerMetrics } from "./batch_consumer.metrics"
 import { PrometheusMeter } from "./prometheus-meter-interface"
 
-export const kafkaPlugin = fastifyPlugin(
+export const kafkaFastifyPlugin: Plugin = fastifyPlugin(
   async (app, opts: KafkaPluginOptions) => {
     if (opts.producer) {
       app.log.debug("Found kafka producer config")
@@ -30,6 +30,7 @@ export const kafkaPlugin = fastifyPlugin(
       app.addHook("onClose", async () => consumer.disconnect())
     }
   },
+  {},
 )
 
 export interface KafkaPluginOptions {
@@ -37,6 +38,24 @@ export interface KafkaPluginOptions {
   producer?: KafkaProducerConfig
   prometheusMeter?: PrometheusMeter
 }
+
+type Plugin = import("fastify").Plugin<
+  HttpServer,
+  HttpRequest,
+  HttpResponse,
+  KafkaPluginOptions
+>
+type HttpServer =
+  | import("http").Server
+  | import("http2").Http2Server
+  | import("http2").Http2SecureServer
+  | import("https").Server
+type HttpRequest =
+  | import("http").IncomingMessage
+  | import("http2").Http2ServerRequest
+type HttpResponse =
+  | import("http").ServerResponse
+  | import("http2").Http2ServerResponse
 
 declare module "fastify" {
   interface FastifyInstance {
