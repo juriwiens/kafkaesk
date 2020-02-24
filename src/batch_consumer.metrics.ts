@@ -1,94 +1,82 @@
 import range from "lodash.range"
-import promClient from "prom-client"
 import { KafkaBatchConsumer } from "./batch_consumer"
 import { getErrorType } from "./utils/error_type"
+import type { PrometheusMeter } from "./prometheus-meter-interface"
 
 export class KafkaBatchConsumerMetrics {
   constructor(
-    registers: promClient.Registry[] = [promClient.register],
+    promMeter: PrometheusMeter,
 
-    readonly errorCounter = new promClient.Counter({
-      registers,
+    readonly errorCounter = promMeter.createCounter({
       name: "kafka_consumer_errors_total",
       help: "Number of all errors, labeled by error_type and context.",
       labelNames: ["name", "context", "error_type"],
     }),
 
-    readonly isConnectedGauge = new promClient.Gauge({
-      registers,
+    readonly isConnectedGauge = promMeter.createGauge({
       name: "kafka_consumer_connected",
       help: "Indicates if the producer is connected.",
       labelNames: ["name"],
     }),
 
-    readonly isConsumingGauge = new promClient.Gauge({
-      registers,
+    readonly isConsumingGauge = promMeter.createGauge({
       name: "kafka_consumer_consuming",
       help: "Indicates if the producer is consuming.",
       labelNames: ["name"],
     }),
 
-    readonly isPollingGauge = new promClient.Gauge({
-      registers,
+    readonly isPollingGauge = promMeter.createGauge({
       name: "kafka_consumer_polling",
       help: "Indicates if the producer is polling.",
       labelNames: ["name"],
     }),
 
-    readonly consumedMessageCounter = new promClient.Counter({
-      registers,
+    readonly consumedMessageCounter = promMeter.createCounter({
       name: "kafka_consumer_consumed_messages_total",
       help: "Number of consumed messages, labeled by topic and partition.",
       labelNames: ["name", "topic", "partition"],
     }),
 
-    readonly invalidMessageCounter = new promClient.Counter({
-      registers,
+    readonly invalidMessageCounter = promMeter.createCounter({
       name: "kafka_consumer_invalid_messages_total",
       help: "Number of invalid messages, labeled by topic and partition.",
       labelNames: ["name", "topic", "partition"],
     }),
 
-    readonly rawBatchCounter = new promClient.Counter({
-      registers,
+    readonly rawBatchCounter = promMeter.createCounter({
       name: "kafka_consumer_raw_batches_total",
       help: "Number of consumed raw batches.",
       labelNames: ["name"],
     }),
 
-    readonly batchCounter = new promClient.Counter({
-      registers,
+    readonly batchCounter = promMeter.createCounter({
       name: "kafka_consumer_batches_total",
       help:
         "Number of consumed splitted batches, labeled by topic and (eventually) partition.",
       labelNames: ["name", "topic", "partition"],
     }),
 
-    readonly rawBatchSizeHistogram = new promClient.Histogram({
-      registers,
+    readonly rawBatchSizeHistogram = promMeter.createHistogram({
       name: "kafka_consumer_raw_batch_size",
       help: "Number of messages per raw batch.",
       buckets: [...range(0, 100, 10), ...range(100, 1000, 50), 1000],
       labelNames: ["name"],
     }),
 
-    readonly batchSizeHistogram = new promClient.Histogram({
-      registers,
+    readonly batchSizeHistogram = promMeter.createHistogram({
       name: "kafka_consumer_batch_size",
       help: "Number of messages per batch.",
       buckets: [...range(0, 100, 10), ...range(100, 1000, 50), 1000],
       labelNames: ["name", "topic", "partition"],
     }),
 
-    readonly consumedOffsetGauge = new promClient.Gauge({
-      registers,
+    readonly consumedOffsetGauge = promMeter.createGauge({
       name: "kafka_consumer_consumed_offset",
       help: "Consumed message offset, labeled by topic and partition.",
       labelNames: ["name", "topic", "partition"],
     }),
 
-    readonly commitedOffsetGauge = new promClient.Gauge({
-      registers,
+    readonly commitedOffsetGauge = promMeter.createGauge({
       name: "kafka_consumer_commited_offset",
       help: "Commited message offset, labeled by topic and partition.",
       labelNames: ["name", "topic", "partition"],
