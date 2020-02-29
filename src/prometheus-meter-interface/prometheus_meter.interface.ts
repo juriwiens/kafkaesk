@@ -1,25 +1,4 @@
-import type promClient from "prom-client"
-
-/**
- * A PrometheusMeter is a metric factory and inspired by the OpenTelemetry Metrics Meter concept.
- * It enables libraries to only depend on this interface instead of concrete prom-client implementation.
- */
-export interface PrometheusMeter {
-  createCounter<Labels extends string>(
-    config: promClient.CounterConfiguration<Labels>,
-  ): promClient.Counter<Labels>
-  createGauge<Labels extends string>(
-    config: promClient.GaugeConfiguration<Labels>,
-  ): promClient.Gauge<Labels>
-  createHistogram<Labels extends string>(
-    config: promClient.HistogramConfiguration<Labels>,
-  ): promClient.Histogram<Labels>
-  createSummary<Labels extends string>(
-    config: promClient.SummaryConfiguration<Labels>,
-  ): promClient.Summary<Labels>
-}
-
-export type {
+import type {
   Counter,
   CounterConfiguration,
   Gauge,
@@ -29,3 +8,22 @@ export type {
   Summary,
   SummaryConfiguration,
 } from "prom-client"
+
+/**
+ * A PrometheusMeter is a metric factory and inspired by the OpenTelemetry Metrics Meter concept.
+ * It enables libraries to only depend on this interface instead of a concrete prom-client implementation.
+ */
+export interface PrometheusMeter {
+  createCounter<Labels extends string>(
+    config: CounterConfiguration<Labels>,
+  ): Counter<Labels>
+  createGauge<Labels extends string>(
+    config: GaugeConfiguration<Labels>,
+  ): Gauge<Labels>
+  createHistogram<Labels extends string>(
+    config: HistogramConfiguration<Labels>,
+  ): Histogram<Labels>
+  createSummary<Labels extends string>(
+    config: SummaryConfiguration<Labels>,
+  ): Summary<Labels>
+}

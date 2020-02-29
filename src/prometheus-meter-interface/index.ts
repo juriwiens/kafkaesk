@@ -1,1 +1,1 @@
-export type * from "./prometheus_meter.interface"
+export type {PrometheusMeter} from "./prometheus_meter.interface"

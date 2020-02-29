@@ -1,5 +1,5 @@
 import promClient from "prom-client"
-import * as promMeter from "../prometheus-meter-interface"
+import type {PrometheusMeter} from "../prometheus-meter-interface"
 
 export function createPrometheusMeter(
   defaultRegisters: promClient.Registry[] = [promClient.register],
@@ -7,29 +7,29 @@ export function createPrometheusMeter(
   Gauge = promClient.Gauge,
   Histogram = promClient.Histogram,
   Summary = promClient.Summary,
-): promMeter.PrometheusMeter {
+): PrometheusMeter {
   return {
     createCounter<Labels extends string>(
-      config: promMeter.CounterConfiguration<Labels>,
-    ): promMeter.Counter<Labels> {
+      config: promClient.CounterConfiguration<Labels>,
+    ): promClient.Counter<Labels> {
       return new Counter<Labels>({ registers: defaultRegisters, ...config })
     },
 
     createGauge<Labels extends string>(
-      config: promMeter.GaugeConfiguration<Labels>,
-    ): promMeter.Gauge<Labels> {
+      config: promClient.GaugeConfiguration<Labels>,
+    ): promClient.Gauge<Labels> {
       return new Gauge<Labels>({ registers: defaultRegisters, ...config })
     },
 
     createHistogram<Labels extends string>(
-      config: promMeter.HistogramConfiguration<Labels>,
-    ): promMeter.Histogram<Labels> {
+      config: promClient.HistogramConfiguration<Labels>,
+    ): promClient.Histogram<Labels> {
       return new Histogram<Labels>({ registers: defaultRegisters, ...config })
     },
 
     createSummary<Labels extends string>(
-      config: promMeter.SummaryConfiguration<Labels>,
-    ): promMeter.Summary<Labels> {
+      config: promClient.SummaryConfiguration<Labels>,
+    ): promClient.Summary<Labels> {
       return new Summary<Labels>({ registers: defaultRegisters, ...config })
     },
   }
