@@ -33,12 +33,12 @@
   },
   "homepage": "https://github.com/juriwiens/kafkaesk#readme",
   "dependencies": {
-    "fastify-plugin": "^1.6.0",
+    "fastify-plugin": "^1.6.1",
     "lodash.merge": "^4.6.2",
     "lodash.range": "^3.2.0",
     "node-rdkafka": "^2.7.4",
     "strict-event-emitter-types": "^2.0.0",
-    "uuid": "^7.0.0"
+    "uuid": "^7.0.1"
   },
   "peerDependencies": {
     "prom-client": "^12.0.0"
@@ -48,14 +48,14 @@
     "@types/lodash.merge": "^4.6.6",
     "@types/lodash.range": "^3.2.6",
     "@types/node": "12",
-    "@types/uuid": "^3.4.6",
-    "fastify": "^2.12.0",
+    "@types/uuid": "^7.0.0",
+    "fastify": "^2.12.1",
     "jest": "^25.1.0",
     "prettier": "^1.19.1",
     "prom-client": "^12.0.0",
     "ts-jest": "^25.2.1",
     "ts-node": "^8.6.2",
-    "typescript": "^3.8.2"
+    "typescript": "^3.8.3"
   },
   "jest": {
     "moduleFileExtensions": [
