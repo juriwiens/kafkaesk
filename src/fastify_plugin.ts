@@ -5,6 +5,7 @@ import { KafkaProducerLogging } from "./producer.logging"
 import { KafkaProducerMetrics } from "./producer.metrics"
 import { KafkaBatchConsumerMetrics } from "./batch_consumer.metrics"
 import { PrometheusMeter } from "./prometheus-meter-interface"
+import { KafkaBatchConsumerLogging } from "./batch_consumer.logging"
 
 export const kafkaFastifyPlugin: Plugin = fastifyPlugin(
   async (app, opts: KafkaPluginOptions) => {
@@ -22,6 +23,7 @@ export const kafkaFastifyPlugin: Plugin = fastifyPlugin(
     if (opts.consumer) {
       app.log.debug("Found kafka consumer config")
       const consumer = new KafkaBatchConsumer(opts.consumer)
+      KafkaBatchConsumerLogging.observe(app.log, consumer)
       if (opts.prometheusMeter) {
         new KafkaBatchConsumerMetrics(opts.prometheusMeter).observe(consumer)
       }
