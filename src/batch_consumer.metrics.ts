@@ -9,8 +9,8 @@ export class KafkaBatchConsumerMetrics {
 
     readonly errorCounter = promMeter.createCounter({
       name: "kafka_consumer_errors_total",
-      help: "Number of all errors, labeled by error_type and context.",
-      labelNames: ["name", "context", "error_type"],
+      help: "Number of all errors, labeled by error_name and context.",
+      labelNames: ["name", "context", "error_name"],
     }),
 
     readonly isConnectedGauge = promMeter.createGauge({
@@ -101,11 +101,11 @@ export class KafkaBatchConsumerMetrics {
 
   private observeErrorCount(consumer: KafkaBatchConsumer): void {
     const { name } = consumer
-    consumer.on("error", (err, context) =>
+    consumer.on("error", err =>
       this.errorCounter.inc({
         name,
-        error_type: getErrorType(err),
-        context: typeof context === "string" ? context : "unknown",
+        error_name: err.name,
+        context: err.context || "undefined",
       }),
     )
   }

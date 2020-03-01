@@ -1,7 +1,6 @@
 import { BodyDeserializer, KeyDeserializer } from "./deserializer"
 import { Batch } from "./batch_consumer"
-
-export type ProcessDoneCallback = (err?: Error | null) => void
+import { KafkaMessage } from "./message"
 
 export type ProcessFunc<Body, Key> = (batch: Batch<Body, Key>) => Promise<void>
 
@@ -11,7 +10,10 @@ export interface KafkaTopicProcessor<Body, Key> {
   topic: string
   level: "topic" | "partition"
   bodyDeserializer: BodyDeserializer<Body>
-  bodyValidator: BodyValidatorFunc
+  bodyValidation: {
+    func: BodyValidatorFunc
+    onInvalidMessage: (msg: KafkaMessage<unknown, Key>) => void
+  }
   keyDeserializer: KeyDeserializer<Key>
   processor: ProcessFunc<Body, Key>
 }

@@ -7,7 +7,8 @@ import maxExponential from "./utils/maxExponential"
 import StrictEventEmitter from "strict-event-emitter-types"
 import * as rdkafkaT from "./node-rdkafka"
 import { KafkaMessage } from "./message"
-import { ProcessDoneCallback, KafkaTopicProcessor } from "./topic_processor"
+import { KafkaTopicProcessor } from "./topic_processor"
+import { KafkaError } from "./kafka_error"
 
 export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter) {
   static eventNames: Array<keyof KafkaBatchConsumerEvents> = [
@@ -51,13 +52,18 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
       this.kafkaConfig,
       this.topicConfig,
     )
-    this.consumer.on("ready", (info, metadata) =>
-      this.emit("ready", info, metadata),
-    )
-    this.consumer.on("disconnected", () => this.emit("disconnected"))
-    this.consumer.on("error", err =>
-      this.emit("error", err, "consumer_error_event"),
-    )
+    this.consumer.on("ready", (info, metadata) => {
+      this.emit("ready", info, metadata)
+    })
+    this.consumer.on("disconnected", () => {
+      this.emit("disconnected")
+    })
+    this.consumer.on("error", err => {
+      this.emit(
+        "error",
+        KafkaError.fromUnknownError(err, "consumer_error_event"),
+      )
+    })
     this.consuming = false
     // polling state
     this.polling = false
@@ -104,7 +110,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     return this.consumer.isConnected()
   }
 
-  addTopic<Body, Key>(processor: KafkaTopicProcessor<Body, Key>) {
+  addTopic<Body, Key>(processor: KafkaTopicProcessor<Body, Key>): void {
     if (this.topics.includes(processor.topic)) {
       throw new Error(
         `TopicProcessor for topic '${processor.topic}' does already exist`,
@@ -216,11 +222,8 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     this.consumer.consume(this.batchSize, this.processRawBatchCallback)
   }
 
-  private rawBatchDoneCallback: ProcessDoneCallback = err => {
-    if (err) {
-      this.emit("error", err, "processor")
-      throw err
-    }
+  private rawBatchDone(processedBatches: Batch<unknown, unknown>[]) {
+    this.emit("batchesProcessed", processedBatches)
     if (!this.isConnected()) {
       this.stopConsuming()
       return
@@ -229,25 +232,30 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     this.startPolling()
   }
 
+  private rawBatchError = (err: unknown) => {
+    this.emit("error", KafkaError.fromUnknownError(err, "processor"))
+  }
+
   private processRawBatchCallback = (
     err: unknown,
     rawBatch: rdkafkaT.RawMessage[] | null | undefined,
   ): void => {
     if (err) {
       // TODO: maybe retry?
-      this.emit("error", err, "consume")
-      throw err
+      this.emit("error", KafkaError.fromUnknownError(err, "consume"))
+      return
     }
     if (!this.consuming) {
       // stop processing if consuming has been switched off
       return
     }
     if (!Array.isArray(rawBatch)) {
-      this.emit(
-        "error",
-        new Error("Consumed batch is not an array"),
-        "non_array_batch",
+      const err = new KafkaError(
+        "Consumed batch is not an array",
+        "NON_ARRAY_BATCH",
+        "consume",
       )
+      this.emit("error", err)
       return
     }
     this.emit("rawBatch", rawBatch)
@@ -310,11 +318,12 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
       if (offset + 1 > partitionStats.offset) {
         partitionStats.offset = offset + 1
       }
-      if (topicConfig.bodyValidator(msg.body)) {
+      if (topicConfig.bodyValidation.func(msg.body)) {
         batch.messages.push(msg)
         partitionStats.messageCount += 1
       } else {
         this.emit("invalidMessage", msg)
+        topicConfig.bodyValidation.onInvalidMessage(msg)
       }
     }
     // process topic-level batches
@@ -330,9 +339,10 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
       processPromises.push(..._processPromises)
       processedBatches.push(..._processedBatches)
     }
-    Promise.all(processPromises)
-      .then(() => this.rawBatchDoneCallback(), this.rawBatchDoneCallback)
-      .then(() => this.emit("batchesProcessed", processedBatches))
+    Promise.all(processPromises).then(
+      () => this.rawBatchDone(processedBatches),
+      this.rawBatchError,
+    )
   }
 
   private offsetCommitCallback: rdkafkaT.OffsetCommitCallback = (
@@ -340,12 +350,14 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     offsetCommits,
   ) => {
     if (err) {
-      this.emit("error", err, "offset_commit")
+      this.emit("error", KafkaError.fromUnknownError(err, "offset_commit"))
     } else {
-      this.emit(
-        "offsetCommit",
-        offsetCommits.filter(KafkaBatchConsumer.isOffsetCommitWithOffset),
+      const filteredOffsetCommits = offsetCommits.filter(
+        KafkaBatchConsumer.isOffsetCommitWithOffset,
       )
+      if (filteredOffsetCommits.length > 0) {
+        this.emit("offsetCommit", filteredOffsetCommits)
+      }
     }
   }
 
@@ -466,7 +478,7 @@ interface FinalConfig extends KafkaBatchConsumerConfig {
 export interface KafkaBatchConsumerEvents {
   ready: (info: any, metadata: any) => void
   disconnected: void
-  error: (err: unknown, context: string) => void
+  error: (err: KafkaError) => void
   consuming: boolean
   polling: boolean
   offsetCommit: OffsetCommit[]
