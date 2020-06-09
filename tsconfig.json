@@ -8,6 +8,7 @@
     "incremental": true,
     "strict": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "resolveJsonModule": true
   },
   "exclude": ["node_modules", "dist", "tmp"]
