@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/ban-types */
+
 /**
  * Logger interface
  * Copied from https://github.com/fastify/fastify/blob/master/fastify.d.ts

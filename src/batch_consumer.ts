@@ -380,7 +380,12 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     } else {
       // level === 'partition'
       let partitionBatch: PartitionBatch<any, any>
-      if (partitionBatchMap[topic].hasOwnProperty(partition)) {
+      if (
+        Object.prototype.hasOwnProperty.call(
+          partitionBatchMap[topic],
+          partition
+        )
+      ) {
         partitionBatch = partitionBatchMap[topic][partition]
       } else {
         partitionBatch = {
@@ -401,7 +406,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     topic: string,
     partition: number
   ): PartitionStats {
-    if (batch.partitionStats.hasOwnProperty(partition)) {
+    if (Object.prototype.hasOwnProperty.call(batch.partitionStats, partition)) {
       // update existing report
       const partitionReport = batch.partitionStats[partition]
       return partitionReport
