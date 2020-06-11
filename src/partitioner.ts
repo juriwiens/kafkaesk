@@ -1,7 +1,7 @@
 type PartitionerWithTopic<Body, Key> = (
   body: Body,
   key: Key,
-  topic: string,
+  topic: string
 ) => number
 type PartitionerWoutTopic<Body, Key> = (body: Body, key: Key) => number
 export type Partitioner<Body, Key> =

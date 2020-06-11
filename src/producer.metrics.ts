@@ -25,7 +25,7 @@ export class KafkaProducerMetrics {
       name: "kafka_producer_offset",
       help: "Produced offset, labeled by topic and partition.",
       labelNames: ["name", "topic", "partition"],
-    }),
+    })
   ) {}
 
   observe(producer: KafkaProducer<any, any>): this {
@@ -39,7 +39,7 @@ export class KafkaProducerMetrics {
         name,
         error_type: getErrorType(err),
         context,
-      }),
+      })
     )
     producer.on("deliveryReport", (err, { topic, partition, offset }) => {
       if (err) {

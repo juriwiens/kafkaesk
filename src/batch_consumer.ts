@@ -40,7 +40,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
 
   constructor(
     config: KafkaBatchConsumerConfig,
-    rdkafkaConsumer?: RdkafkaConsumer,
+    rdkafkaConsumer?: RdkafkaConsumer
   ) {
     super()
     const finalConfig = this.finalizeConfig(config)
@@ -69,10 +69,10 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     this.consumer.on("disconnected", () => {
       this.emit("disconnected")
     })
-    this.consumer.on("event.error", err => {
+    this.consumer.on("event.error", (err) => {
       this.emit(
         "error",
-        KafkaError.fromUnknownError(err, "consumer_error_event"),
+        KafkaError.fromUnknownError(err, "consumer_error_event")
       )
     })
     this.consumer.on("offset.commit", this.offsetCommitListener.bind(this))
@@ -94,7 +94,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   }
 
   connect(
-    metadataOptions?: rdkafka.MetadataOptions,
+    metadataOptions?: rdkafka.MetadataOptions
   ): Promise<rdkafka.Metadata> {
     return promisify(this.consumer.connect).call(this.consumer, metadataOptions)
   }
@@ -111,7 +111,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   addTopic<Body, Key>(processor: KafkaTopicProcessor<Body, Key>): void {
     if (this.topics.includes(processor.topic)) {
       throw new Error(
-        `TopicProcessor for topic '${processor.topic}' does already exist`,
+        `TopicProcessor for topic '${processor.topic}' does already exist`
       )
     }
     this.processorMap[processor.topic] = processor
@@ -163,7 +163,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   }
 
   async nextTopicBatch<Body = unknown, Key = unknown>(
-    topic: string,
+    topic: string
   ): Promise<Batch<Body, Key>> {
     if (!this.isConnected()) {
       throw new Error("Consumer is not connected")
@@ -173,12 +173,12 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     }
     if (!this.topics.includes(topic)) {
       throw new Error(
-        `Can't wait for next batch of topic ${topic} because it is not consumed`,
+        `Can't wait for next batch of topic ${topic} because it is not consumed`
       )
     }
     let listener: (batch: Batch<Body, Key>) => void
-    const batch = await new Promise<Batch<Body, Key>>(resolve => {
-      listener = batch => {
+    const batch = await new Promise<Batch<Body, Key>>((resolve) => {
+      listener = (batch) => {
         if (batch.topic === topic) {
           resolve(batch)
         }
@@ -236,7 +236,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
 
   private processRawBatchCallback = (
     err: unknown,
-    rawBatch: rdkafka.Message[] | null | undefined,
+    rawBatch: rdkafka.Message[] | null | undefined
   ): void => {
     if (err) {
       // TODO: maybe retry?
@@ -251,7 +251,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
       const err = new KafkaError(
         "Consumed batch is not an array",
         "NON_ARRAY_BATCH",
-        "consume",
+        "consume"
       )
       this.emit("error", err)
       return
@@ -262,7 +262,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
       const delay = maxExponential(
         this.maxEmptyBatchDelayMs,
         this.precedingEmptyBatches++,
-        2,
+        2
       )
       this.emit("emptyBatchDelay", delay)
       this.pollTimeout = setTimeout(this.pollRawBatch, delay)
@@ -316,7 +316,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
         topicBatchMap,
         partitionBatchMap,
         topic,
-        partition,
+        partition
       )
       const partitionStats = batch.partitionStats[partition]
       if (offset + 1 > partitionStats.offset) {
@@ -332,7 +332,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     }
     // process topic-level batches
     const { processPromises, processedBatches } = this.processBatches(
-      Object.values(topicBatchMap),
+      Object.values(topicBatchMap)
     )
     // process partition-level batches
     for (const partitionMap of Object.values(partitionBatchMap)) {
@@ -345,19 +345,19 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     }
     Promise.all(processPromises).then(
       () => this.rawBatchDone(processedBatches),
-      this.rawBatchError,
+      this.rawBatchError
     )
   }
 
   private offsetCommitListener(
     err: Error | undefined,
-    offsetCommits: rdkafka.TopicPartitionOffset[],
+    offsetCommits: rdkafka.TopicPartitionOffset[]
   ) {
     if (err) {
       this.emit("error", KafkaError.fromUnknownError(err, "offset_commit"))
     } else {
       const filteredOffsetCommits = offsetCommits.filter(
-        KafkaBatchConsumer.isOffsetCommitWithOffset,
+        KafkaBatchConsumer.isOffsetCommitWithOffset
       )
       if (filteredOffsetCommits.length > 0) {
         this.emit("offsetCommit", filteredOffsetCommits)
@@ -371,7 +371,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
       [topic: string]: { [partition: string]: PartitionBatch<any, any> }
     },
     topic: string,
-    partition: number,
+    partition: number
   ): Batch<any, any> {
     if (this.processorMap[topic].level === "topic") {
       const topicBatch = topicBatchMap[topic]
@@ -399,7 +399,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   private createOrUpdatePartitionStats(
     batch: Batch<any, any>,
     topic: string,
-    partition: number,
+    partition: number
   ): PartitionStats {
     if (batch.partitionStats.hasOwnProperty(partition)) {
       // update existing report
@@ -433,7 +433,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   }
 
   private static isOffsetCommitWithOffset(
-    offsetCommit: rdkafka.TopicPartitionOffset,
+    offsetCommit: rdkafka.TopicPartitionOffset
   ): boolean {
     return typeof offsetCommit.offset === "number"
   }

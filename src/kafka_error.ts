@@ -6,7 +6,7 @@ export class KafkaError extends Error {
     readonly name: string,
     readonly context: string,
     readonly code: number | null = null,
-    readonly originalError: unknown = null,
+    readonly originalError: unknown = null
   ) {
     super(message)
   }
@@ -18,7 +18,7 @@ export class KafkaError extends Error {
       name,
       context,
       code,
-      code,
+      code
     )
   }
 
@@ -39,12 +39,12 @@ export class KafkaError extends Error {
         "UNKNOWN_ERR_NAME",
         context,
         null,
-        err,
+        err
       )
     }
   }
 
   static codeToNameMap = Object.fromEntries(
-    Object.entries(CODES.ERRORS).map(([err, code]) => [code, err]),
+    Object.entries(CODES.ERRORS).map(([err, code]) => [code, err])
   )
 }

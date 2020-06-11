@@ -4,7 +4,7 @@ import { identity } from "./identity"
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export function inferActualType<Basis extends object>(): <Obj extends Basis>(
-  obj: Obj,
+  obj: Obj
 ) => Obj {
   return identity
 }

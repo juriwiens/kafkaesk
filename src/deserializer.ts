@@ -1,6 +1,6 @@
 type KeyDeserializerWithTopic<Key> = (
   keyBuffer: Buffer | string,
-  topic: string,
+  topic: string
 ) => Key
 type KeyDeserializerWoutTopic<Key> = (keyBuffer: Buffer | string) => Key
 export type KeyDeserializer<Key> =
@@ -9,7 +9,7 @@ export type KeyDeserializer<Key> =
 
 export type BodyDeserializer<Body> = (
   bodyBuffer: Buffer,
-  topic?: string,
+  topic?: string
 ) => Body
 
 export function deserializeJson<Out>(buffer: Buffer): Out {

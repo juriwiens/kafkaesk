@@ -11,25 +11,25 @@ export class KafkaBatchConsumerLogging {
       .on("disconnected", () => {
         logger.warn("Kafka consumer is disconnected")
       })
-      .on("error", err => {
+      .on("error", (err) => {
         logger.error(
           { err, context: err.context },
-          `Kafka producer error on ${err.context}: ${err.message}`,
+          `Kafka producer error on ${err.context}: ${err.message}`
         )
       })
-      .on("invalidMessage", msg => {
+      .on("invalidMessage", (msg) => {
         logger.error(
           { message: JSON.stringify(msg) },
-          "Kafka consumer received an invalid message",
+          "Kafka consumer received an invalid message"
         )
       })
-      .on("consuming", consuming => {
+      .on("consuming", (consuming) => {
         logger.info(`Kafka consumer consuming state: ${consuming}`)
       })
-      .on("rawBatch", batch => {
+      .on("rawBatch", (batch) => {
         logger.debug(`rawBatch size ${batch.length}`)
       })
-      .on("offsetCommit", offsetCommits => {
+      .on("offsetCommit", (offsetCommits) => {
         logger.debug({ offsetCommits }, "Kafka consumer commited offsets")
       })
   }

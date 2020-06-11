@@ -12,7 +12,7 @@ export class KafkaProducerLogging {
           { err, context },
           `Kafka producer error on ${context}: ${
             err instanceof Error ? err.message : err
-          }`,
+          }`
         )
       })
       .on("disconnected", () => {
@@ -24,7 +24,7 @@ export class KafkaProducerLogging {
             { err, report },
             `Kafka delivery report with error: ${
               err instanceof Error ? err.message : err
-            }`,
+            }`
           )
         } else {
           logger.debug({ report }, "Kafka delivery report")

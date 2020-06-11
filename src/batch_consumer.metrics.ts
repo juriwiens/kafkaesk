@@ -79,7 +79,7 @@ export class KafkaBatchConsumerMetrics {
       name: "kafka_consumer_commited_offset",
       help: "Commited message offset, labeled by topic and partition.",
       labelNames: ["name", "topic", "partition"],
-    }),
+    })
   ) {}
 
   observe(consumer: KafkaBatchConsumer): this {
@@ -100,12 +100,12 @@ export class KafkaBatchConsumerMetrics {
 
   private observeErrorCount(consumer: KafkaBatchConsumer): void {
     const { name } = consumer
-    consumer.on("error", err =>
+    consumer.on("error", (err) =>
       this.errorCounter.inc({
         name,
         error_name: err.name,
         context: err.context || "undefined",
-      }),
+      })
     )
   }
 
@@ -118,28 +118,28 @@ export class KafkaBatchConsumerMetrics {
 
   private observeIsConsuming(consumer: KafkaBatchConsumer): void {
     const nameLabel = { name: consumer.name }
-    consumer.on("consuming", consuming =>
-      this.isConsumingGauge.set(nameLabel, consuming ? 1 : 0),
+    consumer.on("consuming", (consuming) =>
+      this.isConsumingGauge.set(nameLabel, consuming ? 1 : 0)
     )
   }
 
   private observeIsPolling(consumer: KafkaBatchConsumer): void {
     const nameLabel = { name: consumer.name }
-    consumer.on("polling", polling =>
-      this.isPollingGauge.set(nameLabel, polling ? 1 : 0),
+    consumer.on("polling", (polling) =>
+      this.isPollingGauge.set(nameLabel, polling ? 1 : 0)
     )
   }
 
   private observeConsumedMessageCount(consumer: KafkaBatchConsumer): void {
     const { name } = consumer
-    consumer.on("batchesProcessed", batchesProcessed => {
+    consumer.on("batchesProcessed", (batchesProcessed) => {
       for (const batch of batchesProcessed) {
         for (const { topic, partition, messageCount } of Object.values(
-          batch.partitionStats,
+          batch.partitionStats
         )) {
           this.consumedMessageCounter.inc(
             { name, topic, partition },
-            messageCount,
+            messageCount
           )
         }
       }
@@ -149,7 +149,7 @@ export class KafkaBatchConsumerMetrics {
   private observeInvalidMessageCount(consumer: KafkaBatchConsumer): void {
     const { name } = consumer
     consumer.on("invalidMessage", ({ topic, partition }) =>
-      this.invalidMessageCounter.inc({ name, topic, partition }),
+      this.invalidMessageCounter.inc({ name, topic, partition })
     )
   }
 
@@ -162,7 +162,7 @@ export class KafkaBatchConsumerMetrics {
 
   private observeBatchCount(consumer: KafkaBatchConsumer): void {
     const { name } = consumer
-    consumer.on("batchesProcessed", batchesProcessed => {
+    consumer.on("batchesProcessed", (batchesProcessed) => {
       for (const { topic, partition } of batchesProcessed) {
         this.batchCounter.inc({
           name,
@@ -175,14 +175,14 @@ export class KafkaBatchConsumerMetrics {
 
   private observeRawBatchSize(consumer: KafkaBatchConsumer): void {
     const nameLabel = { name: consumer.name }
-    consumer.on("rawBatch", rawBatch =>
-      this.rawBatchSizeHistogram.observe(nameLabel, rawBatch.length),
+    consumer.on("rawBatch", (rawBatch) =>
+      this.rawBatchSizeHistogram.observe(nameLabel, rawBatch.length)
     )
   }
 
   private observeBatchSize(consumer: KafkaBatchConsumer): void {
     const { name } = consumer
-    consumer.on("batchesProcessed", batchesProcessed => {
+    consumer.on("batchesProcessed", (batchesProcessed) => {
       for (const { topic, partition, messages } of batchesProcessed) {
         this.batchSizeHistogram.observe(
           {
@@ -190,7 +190,7 @@ export class KafkaBatchConsumerMetrics {
             topic,
             partition: typeof partition === "number" ? partition : "any",
           },
-          messages.length,
+          messages.length
         )
       }
     })
@@ -198,10 +198,10 @@ export class KafkaBatchConsumerMetrics {
 
   private observeConsumedOffset(consumer: KafkaBatchConsumer): void {
     const { name } = consumer
-    consumer.on("batchesProcessed", batchesProcessed => {
+    consumer.on("batchesProcessed", (batchesProcessed) => {
       for (const batch of batchesProcessed) {
         for (const { topic, partition, offset } of Object.values(
-          batch.partitionStats,
+          batch.partitionStats
         )) {
           this.consumedOffsetGauge.set({ name, topic, partition }, offset)
         }
@@ -211,7 +211,7 @@ export class KafkaBatchConsumerMetrics {
 
   private observeCommittedOffset(consumer: KafkaBatchConsumer): void {
     const { name } = consumer
-    consumer.on("offsetCommit", offsetCommits => {
+    consumer.on("offsetCommit", (offsetCommits) => {
       for (const { topic, partition, offset } of offsetCommits) {
         this.commitedOffsetGauge.set({ name, topic, partition }, offset)
       }

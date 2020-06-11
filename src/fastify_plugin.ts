@@ -13,7 +13,7 @@ export const kafkaFastifyPlugin: Plugin = fastifyPlugin(
     const prometheusMeter = opts.prometheusMeter || app.prometheusMeter
     app.log.info(
       "Initializing kafka-plugin using librdkafka %s",
-      librdkafkaVersion,
+      librdkafkaVersion
     )
     if (opts.producer) {
       app.log.debug("Found kafka producer config")
@@ -38,7 +38,7 @@ export const kafkaFastifyPlugin: Plugin = fastifyPlugin(
       app.addHook("onClose", async () => consumer.disconnect())
     }
   },
-  {},
+  {}
 )
 
 export interface KafkaPluginOptions {

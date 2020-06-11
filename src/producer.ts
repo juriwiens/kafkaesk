@@ -26,7 +26,7 @@ export class KafkaProducer<
     partition: number | null | undefined,
     message: rdkafka.MessageValue,
     key: rdkafka.MessageKey,
-    timestamp: number | null | undefined,
+    timestamp: number | null | undefined
   ) => Promise<number | null | undefined>
 
   constructor(config: KafkaProducerConfig<Body, Key>) {
@@ -42,19 +42,19 @@ export class KafkaProducer<
 
     this.producer = new rdkafka.HighLevelProducer(
       this.producerConfig,
-      this.topicConfig,
+      this.topicConfig
     )
     this._producePromisified = promisify(this.producer.produce).bind(
-      this.producer,
+      this.producer
     ) as KafkaProducer["_producePromisified"]
     this.producer.on("ready", (info, metadata) =>
-      this.emit("ready", info, metadata),
+      this.emit("ready", info, metadata)
     )
-    this.producer.on("event.error", err =>
-      this.emit("error", err, "producer_err"),
+    this.producer.on("event.error", (err) =>
+      this.emit("error", err, "producer_err")
     )
     this.producer.on("delivery-report", (err, report) =>
-      this.emit("deliveryReport", err, report),
+      this.emit("deliveryReport", err, report)
     )
     this.producer.setValueSerializer(identity as any)
     this.producer.setKeySerializer(identity as any)
@@ -75,7 +75,7 @@ export class KafkaProducer<
   produce(
     topic: string,
     body: Body,
-    key: Key | null,
+    key: Key | null
   ): Promise<number | null | undefined> {
     const _key = key != null ? key : this.keyGenerator(body, topic)
     return this._producePromisified(
@@ -83,12 +83,12 @@ export class KafkaProducer<
       this.partitioner(body, _key, topic),
       this.bodySerializer(body, topic),
       this.keySerializer(_key, topic),
-      Date.now(),
+      Date.now()
     )
   }
 
   private static finalizeConfig<Body, Key>(
-    config: KafkaProducerConfig<Body, Key>,
+    config: KafkaProducerConfig<Body, Key>
   ): FinalConfig<Body, Key> {
     const defaults: Pick<FinalConfig<Body, Key>, "name"> = {
       name: "default",
@@ -124,7 +124,7 @@ interface EmitterEvents {
   error: (err: unknown, context: string) => void
   deliveryReport: (
     error: rdkafka.LibrdKafkaError,
-    report: rdkafka.DeliveryReport,
+    report: rdkafka.DeliveryReport
   ) => void
 }
 type TypedEmitter = StrictEventEmitter<EventEmitter, EmitterEvents>
