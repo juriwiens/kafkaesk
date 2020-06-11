@@ -1,6 +1,6 @@
 import { KafkaProducer } from "./producer"
 import { getErrorType } from "./utils/error_type"
-import type { PrometheusMeter } from "./prometheus-meter-interface"
+import type { PrometheusMeter } from "./prometheus_meter"
 
 export class KafkaProducerMetrics {
   constructor(

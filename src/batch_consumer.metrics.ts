@@ -1,7 +1,6 @@
 import range from "lodash.range"
 import { KafkaBatchConsumer } from "./batch_consumer"
-import { getErrorType } from "./utils/error_type"
-import type { PrometheusMeter } from "./prometheus-meter-interface"
+import type { PrometheusMeter } from "./prometheus_meter"
 
 export class KafkaBatchConsumerMetrics {
   constructor(
