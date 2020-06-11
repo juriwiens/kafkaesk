@@ -5,10 +5,10 @@ import merge from "lodash.merge"
 import maxExponential from "./utils/maxExponential"
 
 import StrictEventEmitter from "strict-event-emitter-types"
-import * as rdkafkaT from "./node-rdkafka"
 import { KafkaMessage } from "./message"
 import { KafkaTopicProcessor } from "./topic_processor"
 import { KafkaError } from "./kafka_error"
+import { inferActualType } from "./utils/ts_infer_actual"
 
 export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter) {
   static eventNames: Array<keyof KafkaBatchConsumerEvents> = [
@@ -26,11 +26,11 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   ]
 
   readonly name: string
-  readonly kafkaConfig: rdkafkaT.ConsumerKafkaConfig
-  readonly topicConfig: rdkafkaT.ConsumerTopicConfig
+  readonly kafkaConfig: rdkafka.ConsumerGlobalConfig
+  readonly topicConfig: rdkafka.ConsumerTopicConfig
   readonly topics: string[]
   readonly processorMap: { [topic: string]: KafkaTopicProcessor<any, any> }
-  readonly consumer: rdkafka.KafkaConsumer
+  readonly consumer: RdkafkaConsumer
   readonly batchSize: number
   readonly maxEmptyBatchDelayMs: number
   private consuming: boolean
@@ -38,7 +38,10 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   private pollTimeout: NodeJS.Timeout | null
   private precedingEmptyBatches: number
 
-  constructor(config: KafkaBatchConsumerConfig) {
+  constructor(
+    config: KafkaBatchConsumerConfig,
+    rdkafkaConsumer?: RdkafkaConsumer,
+  ) {
     super()
     const finalConfig = this.finalizeConfig(config)
     this.name = finalConfig.name
@@ -48,22 +51,10 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     this.maxEmptyBatchDelayMs = finalConfig.maxEmptyBatchDelayMs
     this.topics = []
     this.processorMap = {}
-    this.consumer = new rdkafka.KafkaConsumer(
-      this.kafkaConfig,
-      this.topicConfig,
-    )
-    this.consumer.on("ready", (info, metadata) => {
-      this.emit("ready", info, metadata)
-    })
-    this.consumer.on("disconnected", () => {
-      this.emit("disconnected")
-    })
-    this.consumer.on("error", err => {
-      this.emit(
-        "error",
-        KafkaError.fromUnknownError(err, "consumer_error_event"),
-      )
-    })
+    this.consumer =
+      rdkafkaConsumer ||
+      new rdkafka.KafkaConsumer(this.kafkaConfig, this.topicConfig)
+    this.addConsumerEventListener()
     this.consuming = false
     // polling state
     this.polling = false
@@ -71,33 +62,40 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     this.precedingEmptyBatches = 0
   }
 
+  private addConsumerEventListener() {
+    this.consumer.on("ready", (info, metadata) => {
+      this.emit("ready", info, metadata)
+    })
+    this.consumer.on("disconnected", () => {
+      this.emit("disconnected")
+    })
+    this.consumer.on("event.error", err => {
+      this.emit(
+        "error",
+        KafkaError.fromUnknownError(err, "consumer_error_event"),
+      )
+    })
+    this.consumer.on("offset.commit", this.offsetCommitListener.bind(this))
+  }
+
   private finalizeConfig(config: KafkaBatchConsumerConfig): FinalConfig {
-    const defaults: Pick<
-      FinalConfig,
-      "name" | "batchSize" | "maxEmptyBatchDelayMs"
-    > = {
+    const defaults = inferActualType<Partial<FinalConfig>>()({
       name: "default",
-      batchSize: 1000,
+      batchSize: 128,
       maxEmptyBatchDelayMs: 256,
-    }
-    const overrideKafkaConfig: Pick<
-      FinalConfig["kafkaConfig"],
-      | "enable.auto.offset.store"
-      | "enable.auto.commit"
-      | "api.version.request"
-      | "event_cb"
-      | "offset_commit_cb"
-    > = {
+    })
+    const overrideKafkaConfig = inferActualType<FinalConfig["kafkaConfig"]>()({
       "enable.auto.offset.store": true, // enable offset store
       "enable.auto.commit": false, // but do not commit automatically
       "api.version.request": true,
-      event_cb: true,
-      offset_commit_cb: this.offsetCommitCallback,
-    }
+      offset_commit_cb: true,
+    })
     return merge({}, defaults, config, { kafkaConfig: overrideKafkaConfig })
   }
 
-  connect(metadataOptions?: any): Promise<any> {
+  connect(
+    metadataOptions?: rdkafka.MetadataOptions,
+  ): Promise<rdkafka.Metadata> {
     return promisify(this.consumer.connect).call(this.consumer, metadataOptions)
   }
 
@@ -238,7 +236,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
 
   private processRawBatchCallback = (
     err: unknown,
-    rawBatch: rdkafkaT.RawMessage[] | null | undefined,
+    rawBatch: rdkafka.Message[] | null | undefined,
   ): void => {
     if (err) {
       // TODO: maybe retry?
@@ -301,8 +299,14 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
         continue
       }
       const msg: KafkaMessage<unknown, unknown> = {
-        key: topicConfig.keyDeserializer(rawMsg.key, topic),
-        body: topicConfig.bodyDeserializer(rawMsg.value, topic),
+        key:
+          rawMsg.key != null
+            ? topicConfig.keyDeserializer(rawMsg.key, topic)
+            : rawMsg.key,
+        body:
+          rawMsg.value !== null
+            ? topicConfig.bodyDeserializer(rawMsg.value, topic)
+            : rawMsg,
         topic,
         partition,
         offset,
@@ -345,10 +349,10 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     )
   }
 
-  private offsetCommitCallback: rdkafkaT.OffsetCommitCallback = (
-    err,
-    offsetCommits,
-  ) => {
+  private offsetCommitListener(
+    err: Error | undefined,
+    offsetCommits: rdkafka.TopicPartitionOffset[],
+  ) {
     if (err) {
       this.emit("error", KafkaError.fromUnknownError(err, "offset_commit"))
     } else {
@@ -371,7 +375,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   ): Batch<any, any> {
     if (this.processorMap[topic].level === "topic") {
       const topicBatch = topicBatchMap[topic]
-      this.createOrUpdatePartitionReport(topicBatch, topic, partition)
+      this.createOrUpdatePartitionStats(topicBatch, topic, partition)
       return topicBatch
     } else {
       // level === 'partition'
@@ -387,12 +391,12 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
         }
         partitionBatchMap[topic][partition] = partitionBatch
       }
-      this.createOrUpdatePartitionReport(partitionBatch, topic, partition)
+      this.createOrUpdatePartitionStats(partitionBatch, topic, partition)
       return partitionBatch
     }
   }
 
-  private createOrUpdatePartitionReport(
+  private createOrUpdatePartitionStats(
     batch: Batch<any, any>,
     topic: string,
     partition: number,
@@ -429,8 +433,8 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   }
 
   private static isOffsetCommitWithOffset(
-    offsetCommit: rdkafkaT.OffsetCommit,
-  ): offsetCommit is OffsetCommit {
+    offsetCommit: rdkafka.TopicPartitionOffset,
+  ): boolean {
     return typeof offsetCommit.offset === "number"
   }
 }
@@ -457,14 +461,10 @@ export interface PartitionStats {
   messageCount: number
 }
 
-export interface OffsetCommit extends rdkafkaT.OffsetCommit {
-  offset: number
-}
-
 export interface KafkaBatchConsumerConfig {
   name?: string
-  kafkaConfig: rdkafkaT.ConsumerKafkaConfig
-  topicConfig: rdkafkaT.ConsumerTopicConfig
+  kafkaConfig: rdkafka.ConsumerGlobalConfig
+  topicConfig: rdkafka.ConsumerTopicConfig
   batchSize?: number
   maxEmptyBatchDelayMs?: number
 }
@@ -476,16 +476,18 @@ interface FinalConfig extends KafkaBatchConsumerConfig {
 }
 
 export interface KafkaBatchConsumerEvents {
-  ready: (info: any, metadata: any) => void
+  ready: (info: rdkafka.ReadyInfo, metadata: rdkafka.Metadata) => void
   disconnected: void
   error: (err: KafkaError) => void
   consuming: boolean
   polling: boolean
-  offsetCommit: OffsetCommit[]
-  rawBatch: rdkafkaT.RawMessage[]
+  offsetCommit: rdkafka.TopicPartitionOffset[]
+  rawBatch: rdkafka.Message[]
   batch: Batch<any, any>
   batchesProcessed: Array<Batch<any, any>>
   emptyBatchDelay: number
   invalidMessage: KafkaMessage<any, any>
 }
 type TypedEmitter = StrictEventEmitter<EventEmitter, KafkaBatchConsumerEvents>
+
+export type RdkafkaConsumer = rdkafka.KafkaConsumer

@@ -1,5 +1,8 @@
-type KeyDeserializerWithTopic<Key> = (keyBuffer: Buffer, topic: string) => Key
-type KeyDeserializerWoutTopic<Key> = (keyBuffer: Buffer) => Key
+type KeyDeserializerWithTopic<Key> = (
+  keyBuffer: Buffer | string,
+  topic: string,
+) => Key
+type KeyDeserializerWoutTopic<Key> = (keyBuffer: Buffer | string) => Key
 export type KeyDeserializer<Key> =
   | KeyDeserializerWithTopic<Key>
   | KeyDeserializerWoutTopic<Key>

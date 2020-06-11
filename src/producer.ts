@@ -5,33 +5,35 @@ import merge from "lodash.merge"
 import { identity } from "./utils/identity"
 
 import StrictEventEmitter from "strict-event-emitter-types"
-import * as rdkafkaT from "./node-rdkafka"
 import { BodySerializer, KeySerializer } from "./serializer"
 import { KeyGenerator } from "./key_generator"
 import { Partitioner } from "./partitioner"
-import { Promisified } from "./utils/generic_types"
 
 export class KafkaProducer<
   Body = any,
   Key = any
 > extends (EventEmitter as new () => TypedEmitter) {
   readonly name: string
-  readonly kafkaConfig: rdkafkaT.ProducerKafkaConfig
-  readonly topicConfig: rdkafkaT.ProducerTopicConfig
+  readonly producerConfig: rdkafka.ProducerGlobalConfig
+  readonly topicConfig: rdkafka.ProducerTopicConfig
   readonly bodySerializer: BodySerializer<Body>
   readonly keyGenerator: KeyGenerator<Body, Key>
   readonly keySerializer: KeySerializer<Key>
   readonly partitioner: Partitioner<Body, Key>
-  readonly producer: rdkafkaT.HighLevelProducer
-  private _producePromisified: Promisified<
-    rdkafkaT.HighLevelProducer["produce"]
-  >
+  readonly producer: rdkafka.HighLevelProducer
+  private _producePromisified: (
+    topic: string,
+    partition: number | null | undefined,
+    message: rdkafka.MessageValue,
+    key: rdkafka.MessageKey,
+    timestamp: number | null | undefined,
+  ) => Promise<number | null | undefined>
 
   constructor(config: KafkaProducerConfig<Body, Key>) {
     super()
     const finalConfig = KafkaProducer.finalizeConfig(config)
     this.name = finalConfig.name
-    this.kafkaConfig = finalConfig.kafkaConfig
+    this.producerConfig = finalConfig.kafkaConfig
     this.topicConfig = finalConfig.topicConfig
     this.bodySerializer = finalConfig.bodySerializer
     this.keyGenerator = finalConfig.keyGenerator
@@ -39,16 +41,18 @@ export class KafkaProducer<
     this.partitioner = finalConfig.partitioner
 
     this.producer = new rdkafka.HighLevelProducer(
-      this.kafkaConfig,
+      this.producerConfig,
       this.topicConfig,
-    ) as rdkafkaT.HighLevelProducer
+    )
     this._producePromisified = promisify(this.producer.produce).bind(
       this.producer,
-    )
+    ) as KafkaProducer["_producePromisified"]
     this.producer.on("ready", (info, metadata) =>
       this.emit("ready", info, metadata),
     )
-    this.producer.on("error", err => this.emit("error", err, "producer_err"))
+    this.producer.on("event.error", err =>
+      this.emit("error", err, "producer_err"),
+    )
     this.producer.on("delivery-report", (err, report) =>
       this.emit("deliveryReport", err, report),
     )
@@ -68,7 +72,11 @@ export class KafkaProducer<
     return this.producer.isConnected()
   }
 
-  produce(topic: string, body: Body, key: Key | null): Promise<number> {
+  produce(
+    topic: string,
+    body: Body,
+    key: Key | null,
+  ): Promise<number | null | undefined> {
     const _key = key != null ? key : this.keyGenerator(body, topic)
     return this._producePromisified(
       topic,
@@ -98,8 +106,8 @@ export class KafkaProducer<
 
 export interface KafkaProducerConfig<Body = any, Key = any> {
   name?: string
-  kafkaConfig: rdkafkaT.ProducerKafkaConfig
-  topicConfig: rdkafkaT.ProducerTopicConfig
+  kafkaConfig: rdkafka.ProducerGlobalConfig
+  topicConfig: rdkafka.ProducerTopicConfig
   bodySerializer: BodySerializer<Body>
   keyGenerator: KeyGenerator<Body, Key>
   keySerializer: KeySerializer<Key>
@@ -114,6 +122,9 @@ interface EmitterEvents {
   ready: (info: any, metadata: any) => void
   disconnected: void
   error: (err: unknown, context: string) => void
-  deliveryReport: rdkafkaT.DeliveryReportCallback
+  deliveryReport: (
+    error: rdkafka.LibrdKafkaError,
+    report: rdkafka.DeliveryReport,
+  ) => void
 }
 type TypedEmitter = StrictEventEmitter<EventEmitter, EmitterEvents>
