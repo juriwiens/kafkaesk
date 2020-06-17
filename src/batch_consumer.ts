@@ -148,6 +148,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     if (this.consuming) {
       return false
     }
+    this.consumer.unsubscribe().subscribe(this.topics)
     this.consuming = true
     this.emit("consuming", true)
     return this.startPolling()
