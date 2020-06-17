@@ -10,7 +10,7 @@ export interface KafkaTopicProcessor<Body, Key> {
   topic: string
   level: "topic" | "partition"
   bodyDeserializer: BodyDeserializer<Body>
-  bodyValidation: {
+  bodyValidation?: {
     func: BodyValidatorFunc
     onInvalidMessage: (msg: KafkaMessage<unknown, Key>) => void
   }

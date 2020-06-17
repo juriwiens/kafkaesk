@@ -329,7 +329,10 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
       if (offset + 1 > partitionStats.offset) {
         partitionStats.offset = offset + 1
       }
-      if (topicConfig.bodyValidation.func(msg.body)) {
+      if (
+        !topicConfig.bodyValidation ||
+        topicConfig.bodyValidation.func(msg.body)
+      ) {
         batch.messages.push(msg)
         partitionStats.messageCount += 1
       } else {
