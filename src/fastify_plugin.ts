@@ -11,6 +11,8 @@ import type { PrometheusMeter } from "./prometheus_meter"
 export const kafkaFastifyPlugin: Plugin = fastifyPlugin(
   async (app, opts: KafkaPluginOptions) => {
     const prometheusMeter = opts.prometheusMeter || app.prometheusMeter
+    const connect = typeof opts.connect === "boolean" ? opts.connect : true
+
     app.log.info(
       "Initializing kafka-plugin using librdkafka %s",
       librdkafkaVersion
@@ -22,7 +24,9 @@ export const kafkaFastifyPlugin: Plugin = fastifyPlugin(
       if (prometheusMeter) {
         new KafkaProducerMetrics(prometheusMeter).observe(producer)
       }
-      await producer.connect()
+      if (connect) {
+        await producer.connect()
+      }
       app.decorate("kafkaProducer", producer)
       app.addHook("onClose", async () => producer.disconnect())
     }
@@ -33,7 +37,9 @@ export const kafkaFastifyPlugin: Plugin = fastifyPlugin(
       if (prometheusMeter) {
         new KafkaBatchConsumerMetrics(prometheusMeter).observe(consumer)
       }
-      await consumer.connect()
+      if (connect) {
+        await consumer.connect()
+      }
       app.decorate("kafkaConsumer", consumer)
       app.addHook("onClose", async () => consumer.disconnect())
     }
@@ -45,6 +51,7 @@ export interface KafkaPluginOptions {
   consumer?: KafkaBatchConsumerConfig
   producer?: KafkaProducerConfig
   prometheusMeter?: PrometheusMeter
+  connect?: boolean
 }
 
 type Plugin = import("fastify").Plugin<
