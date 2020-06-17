@@ -33,6 +33,8 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   readonly consumer: RdkafkaConsumer
   readonly batchSize: number
   readonly maxEmptyBatchDelayMs: number
+  readonly commitEveryNthBatch: number
+  private commitCount: number
   private consuming: boolean
   private polling: boolean
   private pollTimeout: NodeJS.Timeout | null
@@ -49,6 +51,8 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     this.topicConfig = finalConfig.topicConfig
     this.batchSize = finalConfig.batchSize
     this.maxEmptyBatchDelayMs = finalConfig.maxEmptyBatchDelayMs
+    this.commitEveryNthBatch = finalConfig.commitEveryNthBatch
+    this.commitCount = 0
     this.topics = []
     this.processorMap = {}
     this.consumer =
@@ -83,6 +87,7 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
       name: "default",
       batchSize: 128,
       maxEmptyBatchDelayMs: 256,
+      commitEveryNthBatch: 1,
     })
     const overrideKafkaConfig = inferActualType<FinalConfig["kafkaConfig"]>()({
       "enable.auto.offset.store": true, // enable offset store
@@ -220,13 +225,15 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     this.consumer.consume(this.batchSize, this.processRawBatchCallback)
   }
 
-  private rawBatchDone(processedBatches: Batch<unknown, unknown>[]) {
+  private rawBatchDone(processedBatches: Batch<unknown, unknown>[]): void {
     this.emit("batchesProcessed", processedBatches)
     if (!this.isConnected()) {
       this.stopConsuming()
       return
     }
-    this.commitCurrentOffsets()
+    if (++this.commitCount % this.commitEveryNthBatch === 0) {
+      this.commitCurrentOffsets()
+    }
     this.startPolling()
   }
 
@@ -350,9 +357,9 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
   }
 
   private offsetCommitListener(
-    err: Error | undefined,
+    err: rdkafka.LibrdKafkaError | undefined,
     offsetCommits: rdkafka.TopicPartitionOffset[]
-  ) {
+  ): void {
     if (err) {
       this.emit("error", KafkaError.fromUnknownError(err, "offset_commit"))
     } else {
@@ -472,12 +479,14 @@ export interface KafkaBatchConsumerConfig {
   topicConfig: rdkafka.ConsumerTopicConfig
   batchSize?: number
   maxEmptyBatchDelayMs?: number
+  commitEveryNthBatch?: number
 }
 
 interface FinalConfig extends KafkaBatchConsumerConfig {
   name: string
   batchSize: number
   maxEmptyBatchDelayMs: number
+  commitEveryNthBatch: number
 }
 
 export interface KafkaBatchConsumerEvents {
