@@ -1,6 +1,6 @@
 {
   "name": "kafkaesk",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "High-level TypeScript Kafka consumer and producer based on node-rdkafka.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
