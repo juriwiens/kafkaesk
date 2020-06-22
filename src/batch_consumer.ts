@@ -104,9 +104,11 @@ export class KafkaBatchConsumer extends (EventEmitter as new () => TypedEmitter)
     return promisify(this.consumer.connect).call(this.consumer, metadataOptions)
   }
 
-  disconnect(): Promise<any> {
+  async disconnect(): Promise<void> {
     this.stopConsuming()
-    return promisify(this.consumer.disconnect).call(this.consumer)
+    if (this.isConnected()) {
+      await promisify(this.consumer.disconnect).call(this.consumer)
+    }
   }
 
   isConnected(): boolean {

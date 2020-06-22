@@ -64,8 +64,10 @@ export class KafkaProducer<
     return promisify(this.producer.connect).call(this.producer, metadataOptions)
   }
 
-  disconnect(): Promise<any> {
-    return promisify(this.producer.disconnect).call(this.producer)
+  async disconnect(): Promise<void> {
+    if (this.isConnected()) {
+      await promisify(this.producer.disconnect).call(this.producer)
+    }
   }
 
   isConnected(): boolean {
